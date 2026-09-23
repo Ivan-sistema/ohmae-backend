@@ -1,0 +1,75 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum TipoUsuario {
+  PAI_MAE
+  CUIDADOR
+}
+
+enum StatusTarefa {
+  PENDENTE
+  CONCLUIDO
+  ATRASADO
+}
+
+model Usuario {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome      String       @db.VarChar(255)
+  email     String       @unique @db.VarChar(255)
+  tipo      TipoUsuario
+  criadoEm  DateTime     @default(now()) @map("criado_em") @db.Timestamptz(6)
+  vinculos  VinculoFamilia[]
+  tarefas   Tarefa[]
+
+  @@map("usuarios")
+}
+
+model Crianca {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome              String           @db.VarChar(255)
+  dataNascimento    DateTime         @map("data_nascimento") @db.Date
+  restricoesMedicas String?          @map("restricoes_medicas")
+  criadoEm          DateTime         @default(now()) @map("criado_em") @db.Timestamptz(6)
+  vinculos          VinculoFamilia[]
+  tarefas           Tarefa[]
+
+  @@map("criancas")
+}
+
+model VinculoFamilia {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuarioId  String   @map("usuario_id") @db.Uuid
+  criancaId  String   @map("crianca_id") @db.Uuid
+  podeEditar Boolean  @default(false) @map("pode_editar")
+  criadoEm   DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  crianca    Crianca  @relation(fields: [criancaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, criancaId], map: "vinculo_unico")
+  @@map("vinculos_familia")
+}
+
+model Tarefa {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  criancaId          String       @map("crianca_id") @db.Uuid
+  executorId         String?      @map("executor_id") @db.Uuid
+  titulo             String       @db.VarChar(255)
+  categoria          String       @db.VarChar(50)
+  horarioAgendado    DateTime     @map("horario_agendado") @db.Timestamptz(6)
+  instrucoes         String?
+  status             StatusTarefa @default(PENDENTE)
+  realizadoEm        DateTime?    @map("realizado_em") @db.Timestamptz(6)
+  observacaoExecucao String?      @map("observacao_execucao")
+  fotoUrl            String?      @map("foto_url") @db.VarChar(512)
+  criadoEm           DateTime     @default(now()) @map("criado_em") @db.Timestamptz(6)
+  crianca            Crianca      @relation(fields: [criancaId], references: [id], onDelete: Cascade)
+  executor           Usuario?     @relation(fields: [executorId], references: [id], onDelete: SetNull)
+
+  @@map("tarefas")
+}
