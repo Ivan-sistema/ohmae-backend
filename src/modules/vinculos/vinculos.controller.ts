@@ -65,4 +65,22 @@ export class VinculosController {
       cuidadores: resultado.rows
     };
   }
+
+  // Rota real para o app descobrir os bebês do usuário: GET http://localhost:3000/vinculos/usuario/:usuarioId
+  @Get('usuario/:usuarioId')
+  async listarCriancasDoUsuario(@Param('usuarioId') usuarioId: string) {
+    const queryText = `
+      SELECT c.id, c.nome, c.data_nascimento, c.restricoes_medicas
+      FROM vinculos_familia v
+      JOIN criancas c ON v.crianca_id = c.id
+      WHERE v.usuario_id = $1;
+    `;
+
+    const resultado = await this.databaseService.query(queryText, [usuarioId]);
+    return {
+      sucesso: true,
+      total: resultado.rowCount,
+      criancas: resultado.rows
+    };
+  }
 }
